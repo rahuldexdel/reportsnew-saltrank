@@ -6,6 +6,6 @@ abstract class Controller
 {
     //
     public function test(){
-        echo "";
+        echo "yeyyeyey";
     }
 }
