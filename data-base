@@ -1,0 +1,48 @@
+// charts 
+<ChartContainer config={chartConfig}>
+    <BarChart accessibilityLayer data={chartData}>
+        <CartesianGrid vertical={false} />
+        <XAxis
+            dataKey="month"
+            tickLine={false}
+            tickMargin={10}
+            axisLine={false}
+            tickFormatter={(value) => value.slice(0, 3)}
+        />
+        {/* First Y-axis (Desktop) - Left side */}
+        <YAxis
+            yAxisId="left"
+            dataKey="desktop"
+            orientation="left"
+            axisLine={false}
+            tickLine={false}
+        />
+        {/* Second Y-axis (Mobile) - Also left side but offset */}
+        <YAxis
+            yAxisId="right"
+            dataKey="mobile"
+            orientation="left"
+            axisLine={false}
+            tickLine={false}
+            tick={{ dx: -30 }}  // Adjust position to prevent overlap
+        />
+        <ChartTooltip
+            cursor={false}
+            content={<ChartTooltipContent indicator="dashed" />}
+        />
+        {/* Bars with their respective Y-axes */}
+        <Bar
+            dataKey="desktop"
+            fill="var(--color-desktop)"
+            radius={4}
+            yAxisId="left"
+        />
+        <Bar
+            dataKey="mobile"
+            fill="var(--color-mobile)"
+            radius={4}
+            yAxisId="right"
+        />
+    </BarChart>
+</ChartContainer>
+</CardContent >

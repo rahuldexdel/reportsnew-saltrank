@@ -1,0 +1,11 @@
+
+.tab-menu-bar {
+    flex-wrap: wrap;
+    justify-content: start !important;
+}
+
+px-5 to px-3
+.tab-menu-bar button {
+    max-width: fit-content !important;
+}
+
