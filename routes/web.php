@@ -26,6 +26,9 @@ use App\Http\Controllers\Reports\AiSemrushController;
 
 use App\Http\Controllers\Reports\GoogleAdsControllerApi;
 
+
+
+
 Route::get('/auth/google/callback', [DataSourceController::class, 'callback'])->name('google.oauth.callback');
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -91,38 +94,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
             });
 
 
-           // Route::prefix('dashboard/google-ads')->group(function () {
-               // Route::get('/overview', [GoogleAdsControllerApi::class, 'overview']);
-            //     Route::get('/timeseries', [GoogleAdsController::class, 'timeseries']);
-            //     Route::get('/campaigns', [GoogleAdsController::class, 'campaigns']);
-            //     Route::get('/keywords', [GoogleAdsController::class, 'keywords']);
-            //     Route::get('/search-terms', [GoogleAdsController::class, 'searchTerms']);
-            //     Route::get('/ads', [GoogleAdsController::class, 'ads']);
-            //   //  Route::get('/devices', [GoogleAdsController::class, 'devices']);
-            //     Route::get('/locations', [GoogleAdsController::class, 'locations']);
-            //     Route::get('/demographics', [GoogleAdsController::class, 'demographics']);
-            //    Route::get('/calls', [GoogleAdsController::class, 'calls']);
-            //});
-
+            Route::prefix('dashboard/google-ads')->group(function () {
+                Route::get('/overview', [GoogleAdsControllerApi::class, 'overview']);
+                Route::get('/campaigns', [GoogleAdsControllerApi::class, 'campaigns']);
+               Route::get('/keywords', [GoogleAdsControllerApi::class, 'keywords']);
+                Route::get('/search-terms', [GoogleAdsControllerApi::class, 'searchTerms']);
+                Route::get('/ads', [GoogleAdsControllerApi::class, 'ads']);
+              //  Route::get('/devices', [GoogleAdsController::class, 'devices']);
+                Route::get('/locations', [GoogleAdsControllerApi::class, 'locations']);
+                Route::get('/demographics', [GoogleAdsControllerApi::class, 'demographics']);
+               Route::get('/calls', [GoogleAdsController::class, 'calls']);
+            });
 
 
             Route::prefix('dashboard/google-ads')->group(function () {
-               // Route::get('/overview', [GoogleAdsController::class, 'overview']);
-              // Route::get('/overview', [GoogleAdsControllerApi::class, 'overview']);
-              //  Route::get('/timeseries', [GoogleAdsController::class, 'timeseries']);
-           // Route::get('/campaigns', [GoogleAdsControllerApi::class, 'campaigns']);
-              // Route::get('/timeseries', [GoogleAdsControllerApi::class, 'timeseries']);
-              
-                //Route::get('/campaigns', [GoogleAdsController::class, 'campaigns']);
-               // Route::get('/keywords', [GoogleAdsController::class, 'keywords']);
-                //Route::get('/search-terms', [GoogleAdsController::class, 'searchTerms']);
-                  Route::get('/search-terms', [GoogleAdsControllerApi::class, 'searchTerms']);
-                Route::get('/ads', [GoogleAdsController::class, 'ads']);
-
-
+              //  Route::get('/overview', [GoogleAdsController::class, 'overview']);
+                Route::get('/timeseries', [GoogleAdsController::class, 'timeseries']);
+               // Route::get('/campaigns', [GoogleAdsController::class, 'campaigns']);
+              //  Route::get('/keywords', [GoogleAdsController::class, 'keywords']);
+               // Route::get('/search-terms', [GoogleAdsController::class, 'searchTerms']);
+              ///  Route::get('/ads', [GoogleAdsController::class, 'ads']);
               //  Route::get('/devices', [GoogleAdsController::class, 'devices']);
-                Route::get('/locations', [GoogleAdsController::class, 'locations']);
-                Route::get('/demographics', [GoogleAdsController::class, 'demographics']);
+               // Route::get('/locations', [GoogleAdsController::class, 'locations']);
+                //Route::get('/demographics', [GoogleAdsController::class, 'demographics']);
                Route::get('/calls', [GoogleAdsController::class, 'calls']);
             });
 

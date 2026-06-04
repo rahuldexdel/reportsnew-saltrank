@@ -931,74 +931,74 @@ class FetchGoogleAdsDataJob implements ShouldQueue
 
 
            protected function fetchCalls(GoogleAdsService $service)
-{
-    $where = $this->getCallDateRange();
+            {
+                $where = $this->getCallDateRange();
 
-    $query = "
-        SELECT
-            call_view.start_call_date_time,
-            call_view.call_status,
-            campaign.id -- ✅ REQUIRED
-        FROM call_view
-        WHERE {$where}
-    ";
+                $query = "
+                    SELECT
+                        call_view.start_call_date_time,
+                        call_view.call_status,
+                        campaign.id -- ✅ REQUIRED
+                    FROM call_view
+                    WHERE {$where}
+                ";
 
-    $response = $service->query(
-        $this->googleAccount,
-        $this->customerId,
-        $query,
-        $this->loginCustomerId
-    );
+                $response = $service->query(
+                    $this->googleAccount,
+                    $this->customerId,
+                    $query,
+                    $this->loginCustomerId
+                );
 
-    $totals = [];
+                $totals = [];
 
-    foreach ($response->iterateAllElements() as $row) {
+                foreach ($response->iterateAllElements() as $row) {
 
-        $callView = $row->getCallView();
-        $campaign = $row->getCampaign();
+                    $callView = $row->getCallView();
+                    $campaign = $row->getCampaign();
 
-        if (!$callView || !$campaign) continue;
+                    if (!$callView || !$campaign) continue;
 
-        $dateTime = $callView->getStartCallDateTime();
-        if (!$dateTime) continue;
+                    $dateTime = $callView->getStartCallDateTime();
+                    if (!$dateTime) continue;
 
-        $date = \Carbon\Carbon::parse($dateTime)->format('Y-m-d');
+                    $date = \Carbon\Carbon::parse($dateTime)->format('Y-m-d');
 
-        $campaignId = $campaign->getId(); // ✅ ADD
+                    $campaignId = $campaign->getId(); // ✅ ADD
 
-        $status = (int) $callView->getCallStatus();
+                    $status = (int) $callView->getCallStatus();
 
-        if ($status !== 3) continue;
+                    if ($status !== 3) continue;
 
-        // ✅ FIXED KEY (campaign + date)
-        $key = $campaignId . '_' . $date;
+                    // ✅ FIXED KEY (campaign + date)
+                    $key = $campaignId . '_' . $date;
 
-        $totals[$key] = [
-            'campaign_id' => $campaignId,
-            'date'        => $date,
-            'total_calls' => ($totals[$key]['total_calls'] ?? 0) + 1,
-        ];
-    }
+                    $totals[$key] = [
+                        'campaign_id' => $campaignId,
+                        'date'        => $date,
+                        'total_calls' => ($totals[$key]['total_calls'] ?? 0) + 1,
+                    ];
+                }
 
-    $data = [];
+                $data = [];
 
-    foreach ($totals as $row) {
-        $data[] = [
-            'ads_account_id' => $this->property->id,
-            'campaign_id'    => $row['campaign_id'], // ✅ FIX
-            'date'           => $row['date'],
-            'total_calls'    => $row['total_calls'],
-            'created_at'     => now(),
-            'updated_at'     => now(),
-        ];
-    }
+                foreach ($totals as $row) {
+                    $data[] = [
+                        'ads_account_id' => $this->property->id,
+                        'campaign_id'    => $row['campaign_id'], // ✅ FIX
+                        'date'           => $row['date'],
+                        'total_calls'    => $row['total_calls'],
+                        'created_at'     => now(),
+                        'updated_at'     => now(),
+                    ];
+                }
 
-    if (!empty($data)) {
-        GoogleAdsCall::upsert(
-            $data,
-            ['ads_account_id', 'campaign_id', 'date'], // ✅ FIX
-            ['total_calls', 'updated_at']
-        );
-    }
-}
+                if (!empty($data)) {
+                    GoogleAdsCall::upsert(
+                        $data,
+                        ['ads_account_id', 'campaign_id', 'date'], // ✅ FIX
+                        ['total_calls', 'updated_at']
+                    );
+                }
+            }
     }

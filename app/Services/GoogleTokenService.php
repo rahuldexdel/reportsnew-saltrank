@@ -7,17 +7,8 @@ use Illuminate\Support\Facades\Http;
 
 class GoogleTokenService
 {
+ 
 
-   protected $clientId;
-    protected $clientSecret;
-
-    public function __construct()
-    {
-        $this->clientId = env('GOOGLE_CLIENT_ID');
-        $this->clientSecret = env('GOOGLE_CLIENT_SECRET');
-    }
-
-    
     /**
      * Refreshes the access token using the refresh token and updates the DB
      */

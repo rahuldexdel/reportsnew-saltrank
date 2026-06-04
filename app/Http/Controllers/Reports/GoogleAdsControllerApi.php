@@ -10,6 +10,14 @@ use App\Services\GoogleAdsService; // Ensure this is your correct service namesp
 use App\Models\GoogleAccount;
 use App\Models\GoogleServiceProperty;
 use Illuminate\Support\Facades\Log;
+use Google\Ads\GoogleAds\V22\Enums\DeviceEnum\Device;
+use Google\Ads\GoogleAds\V22\Enums\GeoTargetingTypeEnum\GeoTargetingType;
+use Google\Ads\GoogleAds\V22\Enums\GenderTypeEnum\GenderType;
+use Google\Ads\GoogleAds\V22\Enums\AgeRangeTypeEnum\AgeRangeType;
+use Google\Ads\GoogleAds\V22\Enums\AdTypeEnum\AdType;
+use Google\Ads\GoogleAds\V22\Enums\CallStatusEnum\CallStatus;
+use Google\Ads\GoogleAds\V22\Enums\AssetFieldTypeEnum\AssetFieldType;
+use Google\Ads\GoogleAds\V22\Enums\AdvertisingChannelTypeEnum\AdvertisingChannelType;
 
 class GoogleAdsControllerApi extends Controller
 {
@@ -126,17 +134,26 @@ public function overview(Request $request, GoogleAdsService $apiService)
         return response()->json(['error' => 'No connected Google Ads account found.'], 404);
     }
 
-        // Fetch the active property matched specifically to the selected client_id
-        $property = GoogleServiceProperty::where('service_type', 'ads')
-            ->where('is_active', 1)
-            ->where('client_id', $clientId) // Filters for the client currently requested
-            ->first(); 
+        // 1. Initial Query: Start with base active 'ads' conditions
+        $query = GoogleServiceProperty::where('service_type', 'ads')
+            ->where('is_active', 1);
 
-        // Fallback: If no property is assigned directly to that client_id, fetch the first active one
-        if (!$property) {
-            $property = GoogleServiceProperty::where('service_type', 'ads')
-                ->where('is_active', 1)
+        // 2. Conditional Filter: If client_id is provided, look for that specific one first
+        if (!empty($clientId)) {
+            $property = (clone $query)->where('client_id', $clientId)->first();
+        }
+
+        // 3. Fallback: If no client_id was passed, OR if the specific client query returned nothing
+        if (empty($property)) {
+            $property = $query->where('property_name', 'LIKE', 'Drippe Homes%') // Safe match for "Drippe Homes"
                 ->first();
+                
+            // Absolute safety net: If for some reason "Drippe Homes" is missing/inactive, get the first available active record
+            if (!$property) {
+                $property = GoogleServiceProperty::where('service_type', 'ads')
+                    ->where('is_active', 1)
+                    ->first();
+            }
         }
 
         if (!$property) {
@@ -152,7 +169,7 @@ public function overview(Request $request, GoogleAdsService $apiService)
     $current = $this->fetchDirectMetricsFromApi($apiService, $account, $customerId, $loginCustomerId, $range['start'], $range['end'], $campaignIds);
     $previous = $this->fetchDirectMetricsFromApi($apiService, $account, $customerId, $loginCustomerId, $range['previousStart'], $range['previousEnd'], $campaignIds);
 
-// $data = [$current,$previous];
+
 
 // dd($data);
 
@@ -215,6 +232,9 @@ protected function fetchDirectMetricsFromApi($service, $account, $customerId, $l
         return $totals;
     }
 
+
+    // $data = [$startDate, $endDate];
+    // print_r($data);
 
  
             $where = "segments.date BETWEEN '{$startDate}' AND '{$endDate}'";
@@ -281,8 +301,31 @@ public function campaigns(Request $request, GoogleAdsService $apiService)
     $range = $this->resolveDateRange($request);
 
     $account = GoogleAccount::where('type', 'ads')->where('is_connected', true)->first();
-    $property = GoogleServiceProperty::where('service_type', 'ads')->where('is_active', 1)->where('client_id', $request->client_id)->first() 
-        ?? GoogleServiceProperty::where('service_type', 'ads')->where('is_active', 1)->first();
+     // 1. Initial Query: Start with base active 'ads' conditions
+        $query = GoogleServiceProperty::where('service_type', 'ads')
+            ->where('is_active', 1);
+
+        // 2. Conditional Filter: If client_id is provided, look for that specific one first
+        if (!empty($clientId)) {
+            $property = (clone $query)->where('client_id', $clientId)->first();
+        }
+
+        // 3. Fallback: If no client_id was passed, OR if the specific client query returned nothing
+        if (empty($property)) {
+            $property = $query->where('property_name', 'LIKE', 'Drippe Homes%') // Safe match for "Drippe Homes"
+                ->first();
+                
+            // Absolute safety net: If for some reason "Drippe Homes" is missing/inactive, get the first available active record
+            if (!$property) {
+                $property = GoogleServiceProperty::where('service_type', 'ads')
+                    ->where('is_active', 1)
+                    ->first();
+            }
+        }
+
+        if (!$property) {
+            return response()->json(['error' => 'No active Google Ads property found.'], 404);
+        }
 
 $loginCustomerId = $property->metadata['mcc_id'] ?? null;
 
@@ -335,18 +378,31 @@ public function searchTerms(Request $request, GoogleAdsService $apiService)
 
     $account = GoogleAccount::where('type', 'ads')->where('is_connected', true)->first();
 
-    $property = GoogleServiceProperty::where('service_type', 'ads')
-        ->where('is_active', 1)
-        ->when($request->client_id, function ($query) use ($request) {
-            $query->where('client_id', $request->client_id);
-        })
-        ->first();
+        $query = GoogleServiceProperty::where('service_type', 'ads')
+            ->where('is_active', 1);
 
-    if (!$property) {
-        $property = GoogleServiceProperty::where('service_type', 'ads')
-            ->where('is_active', 1)
-            ->first();
-    }
+        // 2. Conditional Filter: If client_id is provided, look for that specific one first
+        if (!empty($clientId)) {
+            $property = (clone $query)->where('client_id', $clientId)->first();
+        }
+
+        // 3. Fallback: If no client_id was passed, OR if the specific client query returned nothing
+        if (empty($property)) {
+            $property = $query->where('property_name', 'LIKE', 'Drippe Homes%') // Safe match for "Drippe Homes"
+                ->first();
+                
+            // Absolute safety net: If for some reason "Drippe Homes" is missing/inactive, get the first available active record
+            if (!$property) {
+                $property = GoogleServiceProperty::where('service_type', 'ads')
+                    ->where('is_active', 1)
+                    ->first();
+            }
+        }
+
+        if (!$property) {
+            return response()->json(['error' => 'No active Google Ads property found.'], 404);
+        }
+
 
     // 1. Log Configuration Checks
     if (!$account || !$property) {
@@ -358,12 +414,12 @@ public function searchTerms(Request $request, GoogleAdsService $apiService)
 
     $loginCustomerId = $property->metadata['mcc_id'] ?? null;
 
-    Log::info('Google Ads searchTerms Triggered', [
-        'property_id' => $property->property_id,
-        'mcc_id'      => $loginCustomerId,
-        'start_date'  => $range['start'],
-        'end_date'    => $range['end'],
-    ]);
+    // Log::info('Google Ads searchTerms Triggered', [
+    //     'property_id' => $property->property_id,
+    //     'mcc_id'      => $loginCustomerId,
+    //     'start_date'  => $range['start'],
+    //     'end_date'    => $range['end'],
+    // ]);
    
     $query = "
         SELECT
@@ -404,11 +460,11 @@ public function searchTerms(Request $request, GoogleAdsService $apiService)
         
     } catch (\Exception $e) {
         // 3. Log the exact API failure message
-        Log::error('Google Ads API Error in searchTerms', [
-            'property_id' => $property->property_id,
-            'error'       => $e->getMessage(),
-            'trace'       => $e->getTraceAsString()
-        ]);
+        // Log::error('Google Ads API Error in searchTerms', [
+        //     'property_id' => $property->property_id,
+        //     'error'       => $e->getMessage(),
+        //     'trace'       => $e->getTraceAsString()
+        // ]);
        
         return response()->json([
             'error'   => 'Failed to fetch data from Google Ads API.',
@@ -423,11 +479,11 @@ public function searchTerms(Request $request, GoogleAdsService $apiService)
         $r['cost'] = round($r['cost'], 2);
     }
 
-    // 4. Log successful completion
-    Log::info('Google Ads searchTerms Completed', [
-        'property_id'  => $property->property_id,
-        'total_results'=> count($result)
-    ]);
+    // // 4. Log successful completion
+    // Log::info('Google Ads searchTerms Completed', [
+    //     'property_id'  => $property->property_id,
+    //     'total_results'=> count($result)
+    // ]);
 
     return response()->json($result);
 }
@@ -438,9 +494,32 @@ public function ads(Request $request, GoogleAdsService $apiService)
     $range = $this->resolveDateRange($request);
 
     $account = GoogleAccount::where('type', 'ads')->where('is_connected', true)->first();
-    $property = GoogleServiceProperty::where('service_type', 'ads')->where('is_active', 1)->where('client_id', $request->client_id)->first() 
-        ?? GoogleServiceProperty::where('service_type', 'ads')->where('is_active', 1)->first();
+  $query = GoogleServiceProperty::where('service_type', 'ads')
+            ->where('is_active', 1);
 
+        // 2. Conditional Filter: If client_id is provided, look for that specific one first
+        if (!empty($clientId)) {
+            $property = (clone $query)->where('client_id', $clientId)->first();
+        }
+
+        // 3. Fallback: If no client_id was passed, OR if the specific client query returned nothing
+        if (empty($property)) {
+            $property = $query->where('property_name', 'LIKE', 'Drippe Homes%') // Safe match for "Drippe Homes"
+                ->first();
+                
+            // Absolute safety net: If for some reason "Drippe Homes" is missing/inactive, get the first available active record
+            if (!$property) {
+                $property = GoogleServiceProperty::where('service_type', 'ads')
+                    ->where('is_active', 1)
+                    ->first();
+            }
+        }
+
+        if (!$property) {
+            return response()->json(['error' => 'No active Google Ads property found.'], 404);
+        }
+
+          $loginCustomerId = $property->metadata['mcc_id'] ?? null;
     $query = "
         SELECT
             campaign.name,
@@ -462,7 +541,7 @@ public function ads(Request $request, GoogleAdsService $apiService)
         LIMIT 3000
     ";
 
-    $response = $apiService->query($account, $property->property_id, $query, $property->login_customer_id ?? null);
+    $response = $apiService->query($account, $property->property_id, $query, $loginCustomerId ?? null);
     $adsData = collect();
 
     foreach ($response->iterateAllElements() as $row) {
@@ -534,5 +613,512 @@ public function ads(Request $request, GoogleAdsService $apiService)
         'retargeting_ads' => $formatAds($adsData->where('type', 'SEARCH')->where('is_retargeting', true)),
     ]);
 }
+
+    public function keywords(Request $request, GoogleAdsService $apiService)
+    {
+        set_time_limit(180);
+        
+        $clientId = $request->client_id;
+        $groupId  = $request->group_id;
+
+        $range = $this->resolveDateRange($request);
+        $start = $range['start'];
+        $end   = $range['end'];
+
+        // 1. Fetch Google Account and Property Setup (following searchTerms pattern)
+        $account = GoogleAccount::where('type', 'ads')->where('is_connected', true)->first();
+
+        $queryBuilder = GoogleServiceProperty::where('service_type', 'ads')
+            ->where('is_active', 1);
+
+        // Conditional Filter: If client_id is provided, look for that specific one first
+        if (!empty($clientId)) {
+            $property = (clone $queryBuilder)->where('client_id', $clientId)->first();
+        }
+
+        // Fallback: If no client_id was passed, OR if the specific client query returned nothing
+        if (empty($property)) {
+            $property = $queryBuilder->where('property_name', 'LIKE', 'Drippe Homes%')->first();
+                
+            // Absolute safety net
+            if (!$property) {
+                $property = GoogleServiceProperty::where('service_type', 'ads')
+                    ->where('is_active', 1)
+                    ->first();
+            }
+        }
+
+        // Configuration Check
+        if (!$account || !$property) {
+            Log::error('Google Ads keywords Failed: Missing Account or Property configuration.', [
+                'client_id' => $clientId
+            ]);
+            return response()->json(['error' => 'Configuration missing.'], 404);
+        }
+
+        $loginCustomerId = $property->metadata['mcc_id'] ?? null;
+        $campaignIds = $this->allowedPropertyIds($clientId, $groupId);
+
+        Log::info('Google Ads keywords Triggered Live API Fetch', [
+            'property_id' => $property->property_id,
+            'mcc_id'      => $loginCustomerId,
+            'start_date'  => $start,
+            'end_date'    => $end,
+        ]);
+
+        // 2. Build the Google Ads Query (Filtering by Campaign IDs if available)
+        $whereClause = "segments.date BETWEEN '{$start}' AND '{$end}'";
+        // if (!empty($campaignIds)) {
+        //     $campaignIdsString = implode(',', array_map('intval', $campaignIds));
+        //     $whereClause .= " AND campaign.id IN ($campaignIdsString)";
+        // }
+
+        $apiQuery = "
+            SELECT
+                campaign.id,
+                ad_group_criterion.keyword.text,
+                metrics.impressions,
+                metrics.clicks,
+                metrics.cost_micros
+            FROM keyword_view
+            WHERE {$whereClause}
+            AND metrics.impressions > 0
+            LIMIT 5000
+        ";
+
+        $keywordsData = [];
+
+        // 3. Live API Execution & Processing
+        try {
+            $response = $apiService->query($account, $property->property_id, $apiQuery, $loginCustomerId);
+
+            foreach ($response->iterateAllElements() as $row) {
+                if (!$row->getMetrics() || !$row->getAdGroupCriterion()) continue;
+
+                $keywordText = $row->getAdGroupCriterion()->getKeyword()->getText();
+                if (empty($keywordText)) continue;
+
+                $metrics = $row->getMetrics();
+
+                // Grouping and aggregating by keyword keyword text (Emulating MySQL's GROUP BY keyword)
+                if (!isset($keywordsData[$keywordText])) {
+                    $keywordsData[$keywordText] = [
+                        'keyword'     => $keywordText,
+                        'impressions' => 0,
+                        'clicks'      => 0,
+                        'cost'        => 0.0,
+                    ];
+                }
+
+                $keywordsData[$keywordText]['impressions'] += (int) $metrics->getImpressions();
+                $keywordsData[$keywordText]['clicks']      += (int) $metrics->getClicks();
+                $keywordsData[$keywordText]['cost']        += ($metrics->getCostMicros() / 1000000);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Google Ads API Error in keywords', [
+                'property_id' => $property->property_id,
+                'error'       => $e->getMessage()
+            ]);
+        
+            return response()->json([
+                'error'   => 'Failed to fetch data from Google Ads API.',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+
+        // 4. Formatting and Sorting (Emulating MySQL's ORDER BY impressions DESC)
+        $result = array_values($keywordsData);
+        usort($result, fn($a, $b) => $b['impressions'] <=> $a['impressions']);
+
+        foreach ($result as &$r) {
+            $r['cost'] = round($r['cost'], 2);
+        }
+
+        Log::info('Google Ads keywords Live Fetch Completed', [
+            'property_id'   => $property->property_id,
+            'total_results' => count($result)
+        ]);
+
+        return response()->json($result);
+    }
+
+public function locations(Request $request, GoogleAdsService $apiService)
+{
+    set_time_limit(180);
+    
+    $clientId = $request->client_id;
+    $groupId  = $request->group_id;
+
+    $range = $this->resolveDateRange($request);
+    $start = $range['start'];
+    $end   = $range['end'];
+
+    // 1. Fetch Google Account and Property Setup
+    $account = GoogleAccount::where('type', 'ads')->where('is_connected', true)->first();
+
+    $queryBuilder = GoogleServiceProperty::where('service_type', 'ads')
+        ->where('is_active', 1);
+
+    if (!empty($clientId)) {
+        $property = (clone $queryBuilder)->where('client_id', $clientId)->first();
+    }
+
+    if (empty($property)) {
+        $property = $queryBuilder->where('property_name', 'LIKE', 'Drippe Homes%')->first();
+            
+        if (!$property) {
+            $property = GoogleServiceProperty::where('service_type', 'ads')
+                ->where('is_active', 1)
+                ->first();
+        }
+    }
+
+    if (!$account || !$property) {
+        Log::error('Google Ads locations Failed: Missing Account or Property configuration.', [
+            'client_id' => $clientId
+        ]);
+        return response()->json(['error' => 'Configuration missing.'], 404);
+    }
+
+    $loginCustomerId = $property->metadata['mcc_id'] ?? null;
+    $campaignIds = $this->allowedPropertyIds($clientId, $groupId);
+
+    Log::info('Google Ads locations Triggered Live API Fetch', [
+        'property_id' => $property->property_id,
+        'mcc_id'      => $loginCustomerId,
+        'start_date'  => $start,
+        'end_date'    => $end,
+    ]);
+
+    // 2. Build the Geographic query
+    $whereClause = "segments.date BETWEEN '{$start}' AND '{$end}'
+                    AND metrics.impressions > 0
+                    AND metrics.clicks > 0";
+
+    // if (!empty($campaignIds)) {
+    //     $campaignIdsString = implode(',', array_map('intval', $campaignIds));
+    //     $whereClause .= " AND campaign.id IN ($campaignIdsString)";
+    // }
+
+    $apiQuery = "
+        SELECT
+            campaign.id,
+            geographic_view.location_type,
+            segments.geo_target_region,
+            segments.geo_target_city,
+            metrics.impressions,
+            metrics.clicks,
+            metrics.conversions
+        FROM geographic_view
+        WHERE {$whereClause}
+        LIMIT 1000
+    ";
+
+    $rowsData = [];
+    $geoIds = [];
+
+    // 3. API Fetch & Processing (STEP 1: Collect IDs)
+    try {
+        $response = $apiService->query($account, $property->property_id, $apiQuery, $loginCustomerId);
+
+        foreach ($response->iterateAllElements() as $row) {
+            if (!$row->getSegments() || !$row->getMetrics() || !$row->getCampaign()) continue;
+
+            $campaignId = $row->getCampaign()->getId();
+            $cityId     = $row->getSegments()->getGeoTargetCity();
+            $regionId   = $row->getSegments()->getGeoTargetRegion();
+
+            $cityId   = $cityId ? str_replace('geoTargetConstants/', '', $cityId) : null;
+            $regionId = $regionId ? str_replace('geoTargetConstants/', '', $regionId) : null;
+
+            if ($cityId) $geoIds[] = $cityId;
+            if ($regionId) $geoIds[] = $regionId;
+
+            // Notice: your object outputs a numeric int or string representation for type
+            $rowsData[] = [
+                'campaign_id'  => $campaignId,
+                'city_id'      => $cityId,
+                'region_id'    => $regionId,
+                'locationType' => $row->getGeographicView() ? $row->getGeographicView()->getLocationType() : null,
+                'impressions'  => (int) $row->getMetrics()->getImpressions(),
+                'clicks'       => (int) $row->getMetrics()->getClicks(),
+                'conversions'  => (float) $row->getMetrics()->getConversions(),
+            ];
+        }
+
+        // STEP 2: Fetch all geo names into $geoCache
+        $geoCache = [];
+        $geoIds = array_unique(array_filter($geoIds));
+
+        if (!empty($geoIds)) {
+            $idsString = implode(',', $geoIds);
+
+            $geoQuery = "
+                SELECT
+                    geo_target_constant.id,
+                    geo_target_constant.name
+                FROM geo_target_constant
+                WHERE geo_target_constant.id IN ({$idsString})
+            ";
+
+            $geoResponse = $apiService->query($account, $property->property_id, $geoQuery, $loginCustomerId);
+
+            foreach ($geoResponse->iterateAllElements() as $geoRow) {
+                $geo = $geoRow->getGeoTargetConstant();
+                $geoCache[$geo->getId()] = $geo->getName();
+            }
+        }
+
+        // STEP 3: Aggregate rows matching your original table design
+        $totals = [];
+
+        foreach ($rowsData as $row) {
+            $cityStr   = $geoCache[$row['city_id']] ?? 'unknown';
+            $regionStr = $geoCache[$row['region_id']] ?? 'unknown';
+
+            // Safe parsing of the type string or fallback enum index
+            $rawLocationType = $row['locationType'] !== null
+                ? (is_numeric($row['locationType']) ? GeoTargetingType::name($row['locationType']) : (string)$row['locationType'])
+                : 'UNKNOWN';
+
+            // Precise grouping rules conversion
+            if ($rawLocationType === 'AREA_OF_INTEREST' || $rawLocationType === 'DENSE_URBAN_AREA') {
+                $locationType = 'City';
+                $regionStr    = null; // Crucial: City lines don't show the Region string label
+            } elseif ($rawLocationType === 'LOCATION_OF_PRESENCE') {
+                $locationType = 'Region';
+                $cityStr      = 'unknown'; // Crucial: Region lines hide granular cities under 'unknown'
+            } else {
+                // Transforms other targets seamlessly like "DMA_REGION" => "DMA Region"
+                $locationType = ucwords(strtolower(str_replace('_', ' ', $rawLocationType)));
+                $cityStr      = 'unknown';
+            }
+
+            // Create a compound identifier to group the rows correctly
+            $key = "{$regionStr}_{$cityStr}_{$locationType}";
+
+            if (!isset($totals[$key])) {
+                $totals[$key] = [
+                    'region'      => $regionStr,
+                    'city'        => $cityStr,
+                    'target_type' => $locationType,
+                    'impressions' => 0,
+                    'clicks'      => 0,
+                    'conversions' => 0.0,
+                ];
+            }
+
+            $totals[$key]['impressions'] += $row['impressions'];
+            $totals[$key]['clicks']      += $row['clicks'];
+            $totals[$key]['conversions'] += $row['conversions'];
+        }
+    } catch (\Exception $e) {
+        Log::error('Google Ads API Error in locations', [
+            'property_id' => $property->property_id,
+            'error'       => $e->getMessage()
+        ]);
+       
+        return response()->json([
+            'error'   => 'Failed to fetch location data from Google Ads API.',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+
+    // 4. Transform and Sort
+    $result = array_values($totals);
+    usort($result, fn($a, $b) => $b['impressions'] <=> $a['impressions']);
+
+    foreach ($result as &$r) {
+        $r['conversions'] = round($r['conversions'], 2);
+    }
+
+    return response()->json($result);
+}
+
+public function demographics(Request $request, GoogleAdsService $apiService)
+{
+    set_time_limit(180);
+    
+    $clientId = $request->client_id;
+    $groupId  = $request->group_id;
+
+    $range = $this->resolveDateRange($request);
+    $start = $range['start'];
+    $end   = $range['end'];
+
+    // 1. Fetch Google Account and Property Setup (following searchTerms pattern)
+    $account = GoogleAccount::where('type', 'ads')->where('is_connected', true)->first();
+
+    $queryBuilder = GoogleServiceProperty::where('service_type', 'ads')
+        ->where('is_active', 1);
+
+    if (!empty($clientId)) {
+        $property = (clone $queryBuilder)->where('client_id', $clientId)->first();
+    }
+
+    if (empty($property)) {
+        $property = $queryBuilder->where('property_name', 'LIKE', 'Drippe Homes%')->first();
+            
+        if (!$property) {
+            $property = GoogleServiceProperty::where('service_type', 'ads')
+                ->where('is_active', 1)
+                ->first();
+        }
+    }
+
+    if (!$account || !$property) {
+        Log::error('Google Ads demographics Failed: Missing Account or Property configuration.', [
+            'client_id' => $clientId
+        ]);
+        return response()->json(['error' => 'Configuration missing.'], 404);
+    }
+
+    $loginCustomerId = $property->metadata['mcc_id'] ?? null;
+    $campaignIds = $this->allowedPropertyIds($clientId, $groupId);
+
+    // Build common filter string
+   // $campaignIdsString = !empty($campaignIds) ? implode(',', array_map('intval', $campaignIds)) : null;
+    $baseWhere = "segments.date BETWEEN '{$start}' AND '{$end}'";
+    // if ($campaignIdsString) {
+    //     $baseWhere .= " AND campaign.id IN ($campaignIdsString)";
+    // }
+
+    // Storage arrays for data grouping combinations
+    $genderTotals = [];
+    $ageTotals    = [];
+    $deviceTotals = [];
+
+    try {
+        // ==========================================
+        // QUERY 1: GENDER DATA FETCH
+        // ==========================================
+        $genderQuery = "
+            SELECT
+                ad_group_criterion.gender.type,
+                metrics.impressions
+            FROM gender_view
+            WHERE {$baseWhere}
+        ";
+        $genderResponse = $apiService->query($account, $property->property_id, $genderQuery, $loginCustomerId);
+        
+        foreach ($genderResponse->iterateAllElements() as $row) {
+            if (!$row->getAdGroupCriterion() || !$row->getMetrics()) continue;
+            
+            $genderEnum = $row->getAdGroupCriterion()->getGender()->getType();
+            $genderVal  = $genderEnum !== null ? GenderType::name($genderEnum) : 'UNKNOWN';
+            
+            // Format to match database: conversion to lower case string key format
+            $genderKey = strtolower($genderVal);
+            
+            if (!isset($genderTotals[$genderKey])) {
+                $genderTotals[$genderKey] = 0;
+            }
+            $genderTotals[$genderKey] += (int) $row->getMetrics()->getImpressions();
+        }
+
+        // ==========================================
+        // QUERY 2: AGE DATA FETCH
+        // ==========================================
+        $ageQuery = "
+            SELECT
+                ad_group_criterion.age_range.type,
+                metrics.impressions
+            FROM age_range_view
+            WHERE {$baseWhere}
+        ";
+        $ageResponse = $apiService->query($account, $property->property_id, $ageQuery, $loginCustomerId);
+        
+        foreach ($ageResponse->iterateAllElements() as $row) {
+            if (!$row->getAdGroupCriterion() || !$row->getMetrics()) continue;
+            
+            $ageEnum = $row->getAdGroupCriterion()->getAgeRange()->getType();
+            // Use your local formatAge helper function if it exists, otherwise falls back to normal enum strings
+            $ageVal  = method_exists($this, 'formatAge') ? $this->formatAge($ageEnum) : ($ageEnum !== null ? AgeRangeType::name($ageEnum) : 'UNKNOWN');
+            
+            if (!isset($ageTotals[$ageVal])) {
+                $ageTotals[$ageVal] = 0;
+            }
+            $ageTotals[$ageVal] += (int) $row->getMetrics()->getImpressions();
+        }
+
+        // ==========================================
+        // QUERY 3: DEVICE DATA FETCH
+        // ==========================================
+        $deviceQuery = "
+            SELECT
+                segments.device,
+                metrics.impressions
+            FROM campaign
+            WHERE {$baseWhere}
+        ";
+        $deviceResponse = $apiService->query($account, $property->property_id, $deviceQuery, $loginCustomerId);
+        
+        foreach ($deviceResponse->iterateAllElements() as $row) {
+            if (!$row->getSegments() || !$row->getMetrics()) continue;
+            
+            $deviceEnum = $row->getSegments()->getDevice();
+            $deviceVal  = $deviceEnum !== null ? Device::name($deviceEnum) : 'UNKNOWN';
+            
+            $deviceKey = strtolower($deviceVal);
+            
+            if (!isset($deviceTotals[$deviceKey])) {
+                $deviceTotals[$deviceKey] = 0;
+            }
+            $deviceTotals[$deviceKey] += (int) $row->getMetrics()->getImpressions();
+        }
+
+
+
+    } catch (\Exception $e) {
+        Log::error('Google Ads API Error in demographics', [
+            'property_id' => $property->property_id,
+            'error'       => $e->getMessage()
+        ]);
+        return response()->json([
+            'error'   => 'Failed to fetch live metrics data from Google Ads API.',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+
+    // ==========================================
+    // STEP 4: TRANSFORM OUTPUT FORMATS
+    // ==========================================
+    
+    // 1. Structure Genders array -> 'name' => Capitalized, 'value' => aggregated impressions
+    $genderOutput = [];
+    foreach ($genderTotals as $name => $impressions) {
+        $genderOutput[] = [
+            'name'  => ucfirst($name),
+            'value' => $impressions
+        ];
+    }
+
+    // 2. Structure Ages array -> 'name' => Raw label format, 'value' => aggregated impressions
+    $ageOutput = [];
+    foreach ($ageTotals as $name => $impressions) {
+        $ageOutput[] = [
+            'name'  => $name,
+            'value' => $impressions
+        ];
+    }
+
+    // 3. Structure Devices array -> 'name' => Capitalized, 'value' => aggregated impressions
+    $devicesOutput = [];
+    foreach ($deviceTotals as $name => $impressions) {
+        $devicesOutput[] = [
+            'name'  => ucfirst($name),
+            'value' => $impressions
+        ];
+    }
+
+    // Return the clean consolidated array payload
+    return response()->json([
+        'gender'  => $genderOutput,
+        'age'     => $ageOutput,
+        'devices' => $devicesOutput,
+    ]);
+}
+
 
 }

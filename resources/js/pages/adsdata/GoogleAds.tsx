@@ -16,6 +16,10 @@ import GAdsFunnel from "./GAdsFunnel"
 const GoogleAds = ({ data }: any) => {
   if (!data) return null
 
+//console.log('data.demographics',data.demographics);
+
+
+
   return (
     <div className="space-y-10">
       <AdsOverview overview={data.overview || {}} />

@@ -342,6 +342,7 @@ const handlePreviewPDF = async () => {
           if (clientId) params.append("client_id", clientId);
 
           const [
+            demographics,
             overview,
             timeseries,
             campaigns,
@@ -349,10 +350,11 @@ const handlePreviewPDF = async () => {
             searchTerms,
             ads,
             // devices,
-            locations,
-           demographics,
+             locations,
+          
             calls,
           ] = await Promise.all([
+            fetch(`${baseUrl}/dashboard/google-ads/demographics?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/overview?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/timeseries?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/campaigns?${params}`).then(r => r.json()),
@@ -361,20 +363,21 @@ const handlePreviewPDF = async () => {
             fetch(`${baseUrl}/dashboard/google-ads/ads?${params}`).then(r => r.json()),
             // fetch(`${baseUrl}/dashboard/google-ads/devices?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/locations?${params}`).then(r => r.json()),
-            fetch(`${baseUrl}/dashboard/google-ads/demographics?${params}`).then(r => r.json()),
+          
             fetch(`${baseUrl}/dashboard/google-ads/calls?${params}`).then(r => r.json()),
           ]);
 
           data = {
+            demographics,
             overview,
-            timeseries,
+            timeseries, 
             campaigns,
             keywords,
             searchTerms,
             ads,
             // devices,
-            locations,
-           demographics,
+             locations,
+          
             calls,
           };
 
@@ -480,9 +483,9 @@ const handlePreviewPDF = async () => {
       }
     };
 
-  useEffect(() => {
-    fetchData("overview")
-  }, [])
+  // useEffect(() => {
+  //   fetchData("overview")
+  // }, [])
 
 
   console.log('tabData',tabData);
@@ -878,9 +881,9 @@ const loadSummaries = async () => {
 };
 
 
-useEffect(() => {
-  loadSummaries();
-}, [activeTab, selectedGroupId, selectedClientId]);
+// useEffect(() => {
+//   loadSummaries();
+// }, [activeTab, selectedGroupId, selectedClientId]);
 
 const saveSummary = async () => {
   try {
