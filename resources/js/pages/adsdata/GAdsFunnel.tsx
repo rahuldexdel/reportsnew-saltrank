@@ -57,19 +57,25 @@ const GAdsFunnel = ({ overview }: any) => {
         >
           {/* 🔻 Conversions part */}
           <div
-            className="absolute bottom-0 w-full"
+            className="absolute bottom-0 left-0 w-full"
             style={{
               height: `${conversionHeight}px`,
               background: "#1f2937",
+              // Changed clipPath parameters slightly to safely cover the true bottom convergence point
               clipPath: "polygon(0% 0%, 100% 0%, 50% 100%)",
             }}
-            onMouseMove={(e) =>
+            onMouseMove={(e) => {
+              e.stopPropagation(); // 👈 FIXED: Stops event bubbling into the orange Click handler
               handleMove(e, {
                 title: "Conversions",
                 value: conversions,
                 percent: conversionRate,
-              })
-            }
+              });
+            }}
+            onMouseLeave={(e) => {
+              e.stopPropagation(); // 👈 FIXED: Safely breaks out of tooltip data stack
+              setTooltip(null);
+            }}
           />
         </div>
 

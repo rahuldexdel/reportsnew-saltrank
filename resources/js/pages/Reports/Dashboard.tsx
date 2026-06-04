@@ -342,43 +342,39 @@ const handlePreviewPDF = async () => {
           if (clientId) params.append("client_id", clientId);
 
           const [
+             overview,
+            calls,
             demographics,
-            overview,
             timeseries,
             campaigns,
             keywords,
             searchTerms,
             ads,
-            // devices,
              locations,
-          
-            calls,
           ] = await Promise.all([
+              fetch(`${baseUrl}/dashboard/google-ads/overview?${params}`).then(r => r.json()),
+             fetch(`${baseUrl}/dashboard/google-ads/calls?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/demographics?${params}`).then(r => r.json()),
-            fetch(`${baseUrl}/dashboard/google-ads/overview?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/timeseries?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/campaigns?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/keywords?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/search-terms?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/ads?${params}`).then(r => r.json()),
-            // fetch(`${baseUrl}/dashboard/google-ads/devices?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/locations?${params}`).then(r => r.json()),
-          
-            fetch(`${baseUrl}/dashboard/google-ads/calls?${params}`).then(r => r.json()),
+           
           ]);
 
           data = {
-            demographics,
             overview,
+             calls,
+            demographics,
             timeseries, 
             campaigns,
             keywords,
             searchTerms,
             ads,
-            // devices,
-             locations,
-          
-            calls,
+            locations,
+        
           };
 
         } else  if (tab === "call-tracking") {
@@ -483,9 +479,9 @@ const handlePreviewPDF = async () => {
       }
     };
 
-  // useEffect(() => {
-  //   fetchData("overview")
-  // }, [])
+  useEffect(() => {
+    fetchData("overview")
+  }, [])
 
 
   console.log('tabData',tabData);
@@ -755,7 +751,9 @@ const limitedChartData_simpli = useMemo(() => {
   }, [limitedChartData_simpli.length]);
 
 useEffect(() => {
-  const today = new Date();
+  // 1. Get the current time in the US timezone
+  const usString = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
+  const today = new Date(usString);
 
   // End date = yesterday
   const yesterday = new Date(today);
@@ -770,6 +768,7 @@ useEffect(() => {
     to: yesterday,
   };
 
+  // Keep en-CA as it formats perfectly to YYYY-MM-DD
   const formatted = `${past.toLocaleDateString("en-CA")}:${yesterday.toLocaleDateString("en-CA")}`;
 
   setCustomRange(sevenDays);
@@ -793,6 +792,7 @@ useEffect(() => {
   }
 }, [auto7Days, profile_type, dataSources]);
 
+
     const formatDisplayRange = (range) => {
       if (!range?.from || !range?.to) return "Select the Date";
 
@@ -804,14 +804,15 @@ useEffect(() => {
     };
 
 const getDateRangeFromPreset = (preset) => {
-  const today = new Date();
+  // Get the current time in the US timezone
+  const usString = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
+  const today = new Date(usString);
 
   let from;
   let to;
 
   switch (preset) {
     case "7":
-      // Last complete 7 days, excluding today
       to = new Date(today);
       to.setDate(today.getDate() - 1);
 
@@ -820,7 +821,6 @@ const getDateRangeFromPreset = (preset) => {
       break;
 
     case "30":
-      // Last complete 30 days, excluding today
       to = new Date(today);
       to.setDate(today.getDate() - 1);
 
@@ -844,6 +844,8 @@ const getDateRangeFromPreset = (preset) => {
 
   return { from, to };
 };
+
+
   const callRailData =
     tabData["call-tracking"]?.[range]?.[filterKey] ?? null;
 
@@ -881,9 +883,9 @@ const loadSummaries = async () => {
 };
 
 
-// useEffect(() => {
-//   loadSummaries();
-// }, [activeTab, selectedGroupId, selectedClientId]);
+useEffect(() => {
+  loadSummaries();
+}, [activeTab, selectedGroupId, selectedClientId]);
 
 const saveSummary = async () => {
   try {

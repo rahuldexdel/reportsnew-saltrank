@@ -36,7 +36,7 @@ const AdsOverview = ({ overview }: any) => {
   return (
     <>
       <h3 className="font-bold text-4xl text-center bg-black text-white py-2.5">
-        Google Ads Overview
+        Key Performance Indicators
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative p-12 shadow-2xl my-12 rounded-2xl">

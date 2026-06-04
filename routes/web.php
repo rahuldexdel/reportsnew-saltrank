@@ -100,16 +100,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
                Route::get('/keywords', [GoogleAdsControllerApi::class, 'keywords']);
                 Route::get('/search-terms', [GoogleAdsControllerApi::class, 'searchTerms']);
                 Route::get('/ads', [GoogleAdsControllerApi::class, 'ads']);
-              //  Route::get('/devices', [GoogleAdsController::class, 'devices']);
+                Route::get('/timeseries', [GoogleAdsControllerApi::class, 'timeseries']);
                 Route::get('/locations', [GoogleAdsControllerApi::class, 'locations']);
                 Route::get('/demographics', [GoogleAdsControllerApi::class, 'demographics']);
-               Route::get('/calls', [GoogleAdsController::class, 'calls']);
+                Route::get('/calls', [GoogleAdsControllerApi::class, 'calls']);
             });
 
 
             Route::prefix('dashboard/google-ads')->group(function () {
               //  Route::get('/overview', [GoogleAdsController::class, 'overview']);
-                Route::get('/timeseries', [GoogleAdsController::class, 'timeseries']);
+              //  Route::get('/timeseries', [GoogleAdsController::class, 'timeseries']);
                // Route::get('/campaigns', [GoogleAdsController::class, 'campaigns']);
               //  Route::get('/keywords', [GoogleAdsController::class, 'keywords']);
                // Route::get('/search-terms', [GoogleAdsController::class, 'searchTerms']);
@@ -117,7 +117,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
               //  Route::get('/devices', [GoogleAdsController::class, 'devices']);
                // Route::get('/locations', [GoogleAdsController::class, 'locations']);
                 //Route::get('/demographics', [GoogleAdsController::class, 'demographics']);
-               Route::get('/calls', [GoogleAdsController::class, 'calls']);
+               //Route::get('/calls', [GoogleAdsController::class, 'calls']);
             });
 
             Route::get('dashboard/debug/run-ga4/{accountId}', function ($accountId) {

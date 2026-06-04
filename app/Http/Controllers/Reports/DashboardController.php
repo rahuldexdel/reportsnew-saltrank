@@ -885,26 +885,22 @@ class DashboardController extends Controller
                 }
 
 
-                public function getDateRange($range = '7')
+               public function getDateRange($range = '7')
                 {
+                    $timezone = 'America/New_York';
 
+                    if (is_string($range) && str_starts_with($range, 'range=')) {
+                        $range = str_replace('range=', '', $range);
+                    }
 
-                     if (is_string($range) && str_starts_with($range, 'range=')) {
-                            $range = str_replace('range=', '', $range);
-                        }
-
-
-                    // 🔥 Check if custom date range e.g. "2025-05-01:2025-05-20"
                     if (strpos($range, ':') !== false) {
                         [$start, $end] = explode(':', $range);
 
-                        $start = Carbon::parse($start);
-                        $end   = Carbon::parse($end);
+                        $start = Carbon::parse($start, $timezone);
+                        $end   = Carbon::parse($end, $timezone);
 
-                        // Calculate number of days
                         $days = $start->diffInDays($end) + 1;
 
-                        // Previous period = same length before start
                         $previousStart = $start->copy()->subDays($days);
                         $previousEnd   = $start->copy()->subDay();
 
@@ -916,47 +912,46 @@ class DashboardController extends Controller
                         ];
                     }
 
-
                     switch ($range) {
                         case '30':
                             return [
-                                'currentStart'  => now()->subDays(30)->format('Y-m-d'), // last 30 days including today
-                                'currentEnd'    => now()->format('Y-m-d'),
-                                'previousStart' => now()->subDays(60)->format('Y-m-d'), // 30 days before currentStart
-                                'previousEnd'   => now()->subDays(31)->format('Y-m-d'),
+                                'currentStart'  => \Illuminate\Support\Carbon::now($timezone)->subDays(30)->format('Y-m-d'),
+                                'currentEnd'    => \Illuminate\Support\Carbon::now($timezone)->subDay()->format('Y-m-d'),
+                                'previousStart' => \Illuminate\Support\Carbon::now($timezone)->subDays(60)->format('Y-m-d'),
+                                'previousEnd'   => \Illuminate\Support\Carbon::now($timezone)->subDays(31)->format('Y-m-d'),
                             ];
 
                         case 'this_month':
                             return [
-                                'currentStart'  => now()->startOfMonth()->format('Y-m-d'), // first day of this month
-                                'currentEnd'    => now()->format('Y-m-d'),               // today
-                                'previousStart' => now()->subMonth()->startOfMonth()->format('Y-m-d'), // first day of last month
-                                'previousEnd'   => now()->subMonth()->endOfMonth()->format('Y-m-d'),   // last day of last month
+                                'currentStart'  => \Illuminate\Support\Carbon::now($timezone)->startOfMonth()->format('Y-m-d'),
+                                'currentEnd'    => \Illuminate\Support\Carbon::now($timezone)->format('Y-m-d'),
+                                'previousStart' => \Illuminate\Support\Carbon::now($timezone)->subMonth()->startOfMonth()->format('Y-m-d'),
+                                'previousEnd'   => \Illuminate\Support\Carbon::now($timezone)->subMonth()->endOfMonth()->format('Y-m-d'),
                             ];
 
                         case 'last_month':
                             return [
-                                'currentStart'  => now()->subMonth()->startOfMonth()->format('Y-m-d'),  // first day of last month
-                                'currentEnd'    => now()->subMonth()->endOfMonth()->format('Y-m-d'),    // last day of last month
-                                'previousStart' => now()->subMonths(2)->startOfMonth()->format('Y-m-d'), // first day of month before last
-                                'previousEnd'   => now()->subMonths(2)->endOfMonth()->format('Y-m-d'),   // last day of month before last
+                                'currentStart'  => \Illuminate\Support\Carbon::now($timezone)->subMonth()->startOfMonth()->format('Y-m-d'),
+                                'currentEnd'    => \Illuminate\Support\Carbon::now($timezone)->subMonth()->endOfMonth()->format('Y-m-d'),
+                                'previousStart' => \Illuminate\Support\Carbon::now($timezone)->subMonths(2)->startOfMonth()->format('Y-m-d'),
+                                'previousEnd'   => \Illuminate\Support\Carbon::now($timezone)->subMonths(2)->endOfMonth()->format('Y-m-d'),
                             ];
 
-                        case '6_m':  // Case for last 6 months
+                        case '6_m':
                             return [
-                                'currentStart'  => now()->subMonths(6)->format('Y-m-d'),  // 6 months ago
-                                'currentEnd'    => now()->format('Y-m-d'),
-                                'previousStart' => now()->subMonths(12)->format('Y-m-d'), // 6 months before the current 6-month period
-                                'previousEnd'   => now()->subMonths(7)->format('Y-m-d'),  // 12 months ago (start of previous 6-month period)
+                                'currentStart'  => \Illuminate\Support\Carbon::now($timezone)->subMonths(6)->format('Y-m-d'),
+                                'currentEnd'    => \Illuminate\Support\Carbon::now($timezone)->subDay()->format('Y-m-d'),
+                                'previousStart' => \Illuminate\Support\Carbon::now($timezone)->subMonths(12)->format('Y-m-d'),
+                                'previousEnd'   => \Illuminate\Support\Carbon::now($timezone)->subMonths(6)->subDay()->format('Y-m-d'),
                             ];
 
                         case '7':
                         default:
                             return [
-                                'currentStart'  => now()->subDays(7)->format('Y-m-d'),  // last 7 days including today
-                                'currentEnd'    => now()->format('Y-m-d'),
-                                'previousStart' => now()->subDays(14)->format('Y-m-d'), // 7 days before currentStart
-                                'previousEnd'   => now()->subDays(8)->format('Y-m-d'),
+                                'currentStart'  => \Illuminate\Support\Carbon::now($timezone)->subDays(7)->format('Y-m-d'),
+                                'currentEnd'    => \Illuminate\Support\Carbon::now($timezone)->subDay()->format('Y-m-d'),
+                                'previousStart' => \Illuminate\Support\Carbon::now($timezone)->subDays(14)->format('Y-m-d'),
+                                'previousEnd'   => \Illuminate\Support\Carbon::now($timezone)->subDays(8)->format('Y-m-d'),
                             ];
                     }
                 }
@@ -1271,10 +1266,7 @@ class DashboardController extends Controller
                     now()->subMonth()->startOfMonth()    // last month
                 ];
 
-
-                
                 foreach ($monthsToCheck as $monthStart) {
-
                     $start = $monthStart->copy()->startOfMonth();
                     $end = $monthStart->copy()->endOfMonth();
                     $exists = \App\Models\AIInsight::where('client_id', $clientId)
@@ -1292,11 +1284,7 @@ class DashboardController extends Controller
                         ]);
                     }
                 }
-
                 return back()->with('success', 'Sync completed (missing months only)');
             }
-
-
-
 
 }
