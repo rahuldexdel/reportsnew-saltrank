@@ -342,6 +342,7 @@ const handlePreviewPDF = async () => {
           if (clientId) params.append("client_id", clientId);
 
           const [
+             ads,
              locations,
             calls,
             searchTerms,
@@ -350,9 +351,11 @@ const handlePreviewPDF = async () => {
             timeseries,
             campaigns,
             keywords,
-            ads,
+           
             networkPerformance,
           ] = await Promise.all([
+                        fetch(`${baseUrl}/dashboard/google-ads/ads?${params}`).then(r => r.json()),
+
             fetch(`${baseUrl}/dashboard/google-ads/locations?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/calls?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/search-terms?${params}`).then(r => r.json()),
@@ -362,12 +365,12 @@ const handlePreviewPDF = async () => {
             fetch(`${baseUrl}/dashboard/google-ads/campaigns?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/keywords?${params}`).then(r => r.json()),
             // fetch(`${baseUrl}/dashboard/google-ads/search-terms?${params}`).then(r => r.json()),
-            fetch(`${baseUrl}/dashboard/google-ads/ads?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/networkPerformance?${params}`).then(r => r.json()),
            
           ]);
 
           data = {
+             ads,
              locations,
             calls,
             searchTerms,
@@ -376,7 +379,7 @@ const handlePreviewPDF = async () => {
             timeseries, 
             campaigns,
             keywords,
-            ads,
+           
             networkPerformance,
           };
 
@@ -482,9 +485,9 @@ const handlePreviewPDF = async () => {
       }
     };
 
-  useEffect(() => {
-    fetchData("overview")
-  }, [])
+  // useEffect(() => {
+  //   fetchData("overview")
+  // }, [])
 
 
   console.log('tabData',tabData);

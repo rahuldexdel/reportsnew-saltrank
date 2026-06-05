@@ -346,121 +346,131 @@ class GoogleAdsControllerApi extends Controller
             return response()->json($result);
         }
 
-        public function ads(Request $request, GoogleAdsService $apiService)
-        {
-            set_time_limit(120);
-            $clientId = $request->client_id;
-            $groupId  = $request->group_id;
+    public function ads(Request $request, GoogleAdsService $apiService)
+            {
+                set_time_limit(120);
+                $clientId = $request->client_id;
+                $groupId  = $request->group_id;
 
-            $range = $this->resolveDateRange($request);
+                $range = $this->resolveDateRange($request);
 
-            $account = GoogleAccount::where('type', 'ads')->where('is_connected', true)->first();
-        $property = $this->resolveGoogleProperty($request->client_id);
-        if (!$property) {
-            return response()->json(['error' => 'No active Google Ads property found.'], 404);
-        }
-
-        $loginCustomerId = $property->metadata['mcc_id'] ?? null;
-        $query = "
-            SELECT
-                campaign.name,
-                campaign.advertising_channel_type,
-                ad_group.name,
-                ad_group_ad.ad.id,
-                ad_group_ad.ad.name,
-                ad_group_ad.ad.type,
-                ad_group_ad.ad.final_urls,
-                ad_group_ad.ad.expanded_text_ad.headline_part1,
-                ad_group_ad.ad.expanded_text_ad.description,
-                ad_group_ad.ad.responsive_search_ad.headlines,
-                ad_group_ad.ad.responsive_search_ad.descriptions,
-                ad_group_ad.ad.image_ad.image_url,
-                metrics.impressions,
-                metrics.clicks,
-                metrics.cost_micros
-            FROM ad_group_ad
-            WHERE segments.date BETWEEN '{$range['start']}' AND '{$range['end']}'
-            AND metrics.impressions > 0
-            AND ad_group_ad.status IN ('ENABLED', 'PAUSED')
-            AND campaign.status IN ('ENABLED', 'PAUSED')
-            AND ad_group.status IN ('ENABLED', 'PAUSED')
-            LIMIT 3000
-        ";
-
-            $response = $apiService->query($account, $property->property_id, $query, $loginCustomerId ?? null);
-            $adsData = collect();
-
-            foreach ($response->iterateAllElements() as $row) {
-                if (!$row->getAdGroupAd()) continue;
-
-                $ad = $row->getAdGroupAd()->getAd();
-                $campaign = $row->getCampaign();
-                
-                $typeEnum = $campaign->getAdvertisingChannelType();
-                $campaignType = $typeEnum !== null ? \Google\Ads\GoogleAds\V22\Enums\AdvertisingChannelTypeEnum\AdvertisingChannelType::name($typeEnum) : 'UNKNOWN';
-                
-                $campaignName = $campaign->getName();
-                $adGroupName = $row->getAdGroup()->getName();
-                $isRetargeting = str_contains(strtolower($campaignName), 'remarketing') || str_contains(strtolower($campaignName), 'retarget');
-
-                $headline = null;
-                if ($campaignType === 'SEARCH') {
-                    if ($ad->hasResponsiveSearchAd()) {
-                        $headline = collect($ad->getResponsiveSearchAd()->getHeadlines())->map(fn($h) => $h->getText())->implode(' | ');
-                    } elseif ($ad->hasExpandedTextAd()) {
-                        $headline = $ad->getExpandedTextAd()->getHeadlinePart1();
-                    }
-                } elseif ($campaignType === 'DISPLAY') {
-                    $headline = $ad->getName() ?: $adGroupName;
+                $account = GoogleAccount::where('type', 'ads')->where('is_connected', true)->first();
+                $property = $this->resolveGoogleProperty($request->client_id);
+                if (!$property) {
+                    return response()->json(['error' => 'No active Google Ads property found.'], 404);
                 }
 
-                $adsData->push([
-                    'ad_group_name'  => $adGroupName,
-                    'type'           => $campaignType,
-                    'is_retargeting' => $isRetargeting,
-                    'headline'       => $headline ?? $adGroupName,
-                    'final_url'      => $ad->getFinalUrls()[0] ?? null,
-                    'image_url'      => $ad->getImageAd()?->getImageUrl(),
-                    'impressions'    => (int) $row->getMetrics()->getImpressions(),
-                    'clicks'         => (int) $row->getMetrics()->getClicks(),
-                    'cost'           => $row->getMetrics()->getCostMicros() / 1000000,
+                $loginCustomerId = $property->metadata['mcc_id'] ?? null;
+                $query = "
+                    SELECT
+                        campaign.name,
+                        campaign.advertising_channel_type,
+                        ad_group.name,
+                        ad_group_ad.ad.id,
+                        ad_group_ad.ad.name,
+                        ad_group_ad.ad.type,
+                        ad_group_ad.ad.final_urls,
+                        ad_group_ad.ad.expanded_text_ad.headline_part1,
+                        ad_group_ad.ad.expanded_text_ad.description,
+                        ad_group_ad.ad.responsive_search_ad.headlines,
+                        ad_group_ad.ad.responsive_search_ad.descriptions,
+                        ad_group_ad.ad.image_ad.image_url,
+                        segments.ad_network_type,
+                        metrics.impressions,
+                        metrics.clicks,
+                        metrics.cost_micros
+                    FROM ad_group_ad
+                    WHERE segments.date BETWEEN '{$range['start']}' AND '{$range['end']}'
+                    AND metrics.impressions > 0 
+                    AND ad_group_ad.status IN ('ENABLED', 'PAUSED')
+                    AND campaign.status IN ('ENABLED', 'PAUSED')
+                    AND ad_group.status IN ('ENABLED', 'PAUSED')
+                    LIMIT 3000
+                ";
+
+                $response = $apiService->query($account, $property->property_id, $query, $loginCustomerId ?? null);
+                $adsData = collect();
+
+                foreach ($response->iterateAllElements() as $row) {
+                    if (!$row->getAdGroupAd()) continue;
+
+                    $ad = $row->getAdGroupAd()->getAd();
+                    $campaign = $row->getCampaign();
+                    
+                    $typeEnum = $campaign->getAdvertisingChannelType();
+                    $campaignType = $typeEnum !== null ? \Google\Ads\GoogleAds\V22\Enums\AdvertisingChannelTypeEnum\AdvertisingChannelType::name($typeEnum) : 'UNKNOWN';
+                    
+                    // Safely extract the ad network type string (e.g., 'SEARCH', 'CONTENT', 'MIXED')
+                    $networkEnum = $row->getSegments() ? $row->getSegments()->getAdNetworkType() : null;
+                    $networkType = $networkEnum !== null ? \Google\Ads\GoogleAds\V22\Enums\AdNetworkTypeEnum\AdNetworkType::name($networkEnum) : 'UNKNOWN';
+
+                    $campaignName = $campaign->getName();
+                    $adGroupName = $row->getAdGroup()->getName();
+                    $isRetargeting = str_contains(strtolower($campaignName), 'remarketing') || str_contains(strtolower($campaignName), 'retarget');
+
+                    $headline = null;
+                    if ($campaignType === 'SEARCH') {
+                        if ($ad->hasResponsiveSearchAd()) {
+                            $headline = collect($ad->getResponsiveSearchAd()->getHeadlines())->map(fn($h) => $h->getText())->implode(' | ');
+                        } elseif ($ad->hasExpandedTextAd()) {
+                            $headline = $ad->getExpandedTextAd()->getHeadlinePart1();
+                        }
+                    } elseif ($campaignType === 'DISPLAY') {
+                        $headline = $ad->getName() ?: $adGroupName;
+                    }
+
+                    $adsData->push([
+                        'ad_group_name'  => $adGroupName,
+                        'type'           => $campaignType,
+                        'network_type'   => $networkType, // Saved to segment metrics down later
+                        'is_retargeting' => $isRetargeting,
+                        'headline'       => $headline ?? $adGroupName,
+                        'final_url'      => $ad->getFinalUrls()[0] ?? null,
+                        'image_url'      => $ad->getImageAd()?->getImageUrl(),
+                        'impressions'    => (int) $row->getMetrics()->getImpressions(),
+                        'clicks'         => (int) $row->getMetrics()->getClicks(),
+                        'cost'           => $row->getMetrics()->getCostMicros() / 1000000,
+                    ]);
+                }
+
+
+                //dd($adsData);
+                // 1. Group Ad Groups (Preserves complete unsegmented data totals)
+                $adGroups = $adsData->groupBy('ad_group_name')->map(function ($rows, $name) {
+                    return [
+                        'name'        => $name,
+                        'impressions' => $rows->sum('impressions'),
+                        'clicks'      => $rows->sum('clicks'),
+                        'cost'        => round($rows->sum('cost'), 2),
+                    ];
+                })->sortByDesc('impressions')->values();
+
+                // 2. Updated Formatter Closure to group properly 
+                $formatAds = function ($collection) {
+                    return $collection->groupBy(function ($ad) {
+                        return $ad['headline'] . '___' . $ad['final_url'];
+                    })->map(function ($group) {
+                        $firstAd = $group->first();
+                        return [
+                            'headline'      => $firstAd['headline'],
+                            'ad_group_name' => $group->pluck('ad_group_name')->unique()->implode(', '),
+                            'final_url'     => $firstAd['final_url'],
+                            'impressions'   => $group->sum('impressions'),
+                            'clicks'        => $group->sum('clicks'),
+                            'cost'          => round($group->sum('cost'), 2),
+                            'image_url'     => $firstAd['image_url'],
+                        ];
+                    })->sortByDesc('impressions')->values();
+                };
+
+                // 3. Filter metrics appropriately via Laravel Collections
+                return response()->json([
+                    'ad_groups'       => $adGroups,
+                    'display_ads'     => $formatAds($adsData->where('type', 'DISPLAY')),
+                    'search_ads'      => $formatAds($adsData->where('type', 'SEARCH')->where('network_type', 'SEARCH')),
+                    'retargeting_ads' => $formatAds($adsData->where('type', 'SEARCH')->where('network_type', 'SEARCH')->where('is_retargeting', true)),
                 ]);
             }
-
-            // 1. Group Ad Groups (SUM metrics by ad_group_name)
-            $adGroups = $adsData->groupBy('ad_group_name')->map(function ($rows, $name) {
-                return [
-                    'name'        => $name,
-                    'impressions' => $rows->sum('impressions'),
-                    'clicks'      => $rows->sum('clicks'),
-                    'cost'        => round($rows->sum('cost'), 2),
-                ];
-            })->sortByDesc('impressions')->values();
-
-            // Formatter Closure for UI requirements
-            $formatAds = function ($collection) {
-                return $collection->sortByDesc('impressions')->map(function ($ad) {
-                    return [
-                        'headline'      => $ad['headline'],
-                        'ad_group_name' => $ad['ad_group_name'],
-                        'final_url'     => $ad['final_url'],
-                        'impressions'   => $ad['impressions'],
-                        'clicks'        => $ad['clicks'],
-                        'cost'          => round($ad['cost'], 2),
-                        'image_url'     => $ad['image_url'],
-                    ];
-                })->values();
-            };
-
-
-          //  dd($adsData);
-            return response()->json([
-                'ad_groups'       => $adGroups,
-                'display_ads'     => $formatAds($adsData->where('type', 'DISPLAY')),
-                'search_ads'      => $formatAds($adsData->where('type', 'SEARCH')),
-                'retargeting_ads' => $formatAds($adsData->where('type', 'SEARCH')->where('is_retargeting', true)),
-            ]);
-        }
 
            public function keywords(Request $request, GoogleAdsService $apiService)
             {
@@ -655,6 +665,9 @@ public function locations(Request $request, GoogleAdsService $apiService)
 
         $totals = [];
 
+            //     $dataa = [$geoCache,$rowsData];
+            // dd($dataa);
+
         foreach ($rowsData as $row) {
             $cityStr   = $geoCache[$row['city_id']] ?? 'unknown';
             $regionStr = $geoCache[$row['region_id']] ?? 'unknown';
@@ -671,7 +684,7 @@ public function locations(Request $request, GoogleAdsService $apiService)
             }
 
             // Create aggregation key using the real resolved city string
-            $key = "{$regionStr}_{$cityStr}_{$locationType}";
+            $key = "{$regionStr}_{$cityStr}";
 
             if (!isset($totals[$key])) {
                 $totals[$key] = [
@@ -991,6 +1004,7 @@ public function locations(Request $request, GoogleAdsService $apiService)
             try {
                 $response = $apiService->query($account, $customerId, $query, $loginCustomerId);
 
+               // $data1 = [];
                 foreach ($response->iterateAllElements() as $row) {
                     $callView = $row->getCallView();
                     if (!$callView) {
@@ -998,6 +1012,8 @@ public function locations(Request $request, GoogleAdsService $apiService)
                     }
 
                     $dateTime = $callView->getStartCallDateTime();
+                  //  $data1[] = $callView->getStartCallDateTime();
+
                     $duration = (int) $callView->getCallDurationSeconds();
 
                     if (!$dateTime || $duration === 0) {
@@ -1010,7 +1026,8 @@ public function locations(Request $request, GoogleAdsService $apiService)
                                             ->setTimezone($accountTimezone);
                                             
                         $dateStr = $carbonDate->format('Y-m-d');
-                        
+                         //$data1[] = $carbonDate->format('Y-m-d');
+                       
                         // ⭐ STEP 4: Only aggregate the call if it falls into the user's requested range AFTER conversion
                         if ($dateStr >= $start && $dateStr <= $end) {
                             $formattedDate = $carbonDate->format('M d, Y');
@@ -1028,6 +1045,8 @@ public function locations(Request $request, GoogleAdsService $apiService)
                         continue;
                     }
                 }
+
+                dd($aggregatedCalls);
             } catch (\Exception $e) {
                 Log::error('Google Ads Live Call View Query Failed', ['error' => $e->getMessage()]);
                 return response()->json(['error' => 'Failed fetching live call statistics.'], 500);
@@ -1069,10 +1088,14 @@ public function locations(Request $request, GoogleAdsService $apiService)
                 $response = $apiService->query($account, $property->property_id, $query, $loginCustomerId);
                 $networkData = collect();
 
+               // $data1 = [];
+
                 foreach ($response->iterateAllElements() as $row) {
                     $metrics = $row->getMetrics();
                     $networkEnum = $row->getSegments()->getAdNetworkType();
                     
+                  //  $data1[] = $row->getSegments()->getAdNetworkType();
+
                     // 1. Convert internal enum integer to string key
                     $rawNetworkName = match($networkEnum) {
                         1 => 'MIXED',
@@ -1102,6 +1125,8 @@ public function locations(Request $request, GoogleAdsService $apiService)
                         'cost'        => $metrics->getCostMicros() / 1000000,
                     ]);
                 }
+
+               // dd($data1);
 
                 // 3. Group and aggregate values using the precise dashboard mapping criteria
                 $result = $networkData->groupBy('network')->map(function ($rows, $networkName) {
