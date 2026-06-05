@@ -41,6 +41,13 @@ const GAdsCampaigns = ({ campaigns = [] }: any) => {
         Campaign & Keywords Breakdown
       </h3>
 
+
+      {/* Table Section Identity Frame */}
+      <div className="p-4 border-b bg-white">
+        <h3 className="font-bold text-lg text-gray-800">Overall Campaign Performance
+</h3>
+      </div>
+
       {/* Search + Count */}
       <div className="flex justify-between items-center p-4">
         <p className="text-sm text-gray-500">

@@ -12,11 +12,13 @@ import GAdsLocations from "./GAdsLocations"
 import GAdsDemographics from "./GAdsDemographics"
 import GAdsCalls from "./GAdsCalls"
 import GAdsFunnel from "./GAdsFunnel"
+import NetworkPerformance from "./NetworkPerformance"
+
 
 const GoogleAds = ({ data }: any) => {
   if (!data) return null
 
-//console.log('data.demographics',data.demographics);
+console.log('data.demographics',data.calls);
 
 
 
@@ -27,8 +29,10 @@ const GoogleAds = ({ data }: any) => {
         <GAdsTimeSeries timeseries={data.timeseries || []} />
         <GAdsFunnel overview={data.overview || {}} />
       </div>
-      <GAdsCalls calls={data.calls.data || []} />
+      <GAdsCalls calls={data.calls || []} />
       <GAdsCampaigns campaigns={data.campaigns || []} />
+       <NetworkPerformance networkPerformance={data.networkPerformance || []} />
+      
       <GAdsKeywords keywords={data.keywords || []} />
       <GAdsSearchTerms searchTerms={data.searchTerms || []} />
       <GAdsAds data={data} />

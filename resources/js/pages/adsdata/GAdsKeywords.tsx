@@ -61,9 +61,14 @@ const GAdsKeywords = ({ keywords = [] }: any) => {
     <div className="bg-white rounded-xl shadow overflow-hidden">
 
       {/* Header */}
-      <h3 className="font-bold text-2xl text-center bg-black text-white py-3">
+      {/* <h3 className="font-bold text-2xl text-center bg-black text-white py-3">
         Overall Keyword Performance
-      </h3>
+      </h3> */}
+
+            <div className="p-4 border-b bg-white">
+        <h3 className="font-bold text-lg text-gray-800">Overall Keyword Performance
+</h3>
+      </div>
 
       {/* Search */}
       <div className="flex justify-between items-center p-4">

@@ -342,39 +342,42 @@ const handlePreviewPDF = async () => {
           if (clientId) params.append("client_id", clientId);
 
           const [
-             overview,
+             locations,
             calls,
+            searchTerms,
+            overview,
             demographics,
             timeseries,
             campaigns,
             keywords,
-            searchTerms,
             ads,
-             locations,
+            networkPerformance,
           ] = await Promise.all([
-              fetch(`${baseUrl}/dashboard/google-ads/overview?${params}`).then(r => r.json()),
-             fetch(`${baseUrl}/dashboard/google-ads/calls?${params}`).then(r => r.json()),
+            fetch(`${baseUrl}/dashboard/google-ads/locations?${params}`).then(r => r.json()),
+            fetch(`${baseUrl}/dashboard/google-ads/calls?${params}`).then(r => r.json()),
+            fetch(`${baseUrl}/dashboard/google-ads/search-terms?${params}`).then(r => r.json()),
+            fetch(`${baseUrl}/dashboard/google-ads/overview?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/demographics?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/timeseries?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/campaigns?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/keywords?${params}`).then(r => r.json()),
-            fetch(`${baseUrl}/dashboard/google-ads/search-terms?${params}`).then(r => r.json()),
+            // fetch(`${baseUrl}/dashboard/google-ads/search-terms?${params}`).then(r => r.json()),
             fetch(`${baseUrl}/dashboard/google-ads/ads?${params}`).then(r => r.json()),
-            fetch(`${baseUrl}/dashboard/google-ads/locations?${params}`).then(r => r.json()),
+            fetch(`${baseUrl}/dashboard/google-ads/networkPerformance?${params}`).then(r => r.json()),
            
           ]);
 
           data = {
+             locations,
+            calls,
+            searchTerms,
             overview,
-             calls,
             demographics,
             timeseries, 
             campaigns,
             keywords,
-            searchTerms,
             ads,
-            locations,
-        
+            networkPerformance,
           };
 
         } else  if (tab === "call-tracking") {
@@ -883,9 +886,9 @@ const loadSummaries = async () => {
 };
 
 
-useEffect(() => {
-  loadSummaries();
-}, [activeTab, selectedGroupId, selectedClientId]);
+// useEffect(() => {
+//   loadSummaries();
+// }, [activeTab, selectedGroupId, selectedClientId]);
 
 const saveSummary = async () => {
   try {

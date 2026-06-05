@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Http;
 
 class GoogleTokenService
 {
- 
+
 
     /**
      * Refreshes the access token using the refresh token and updates the DB

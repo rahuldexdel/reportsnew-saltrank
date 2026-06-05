@@ -95,6 +95,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
             Route::prefix('dashboard/google-ads')->group(function () {
+
+                Route::get('/networkPerformance', [GoogleAdsControllerApi::class, 'networkPerformance']);
                 Route::get('/overview', [GoogleAdsControllerApi::class, 'overview']);
                 Route::get('/campaigns', [GoogleAdsControllerApi::class, 'campaigns']);
                Route::get('/keywords', [GoogleAdsControllerApi::class, 'keywords']);
